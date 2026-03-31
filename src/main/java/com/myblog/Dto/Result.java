@@ -20,12 +20,13 @@ public class Result<T> {
 
     //成功不带信息
     public static Result success(){
-        return new Result<>(0,"操作成功",null,System.currentTimeMillis());
+        return new Result<>(200,"操作成功",null,System.currentTimeMillis());
     }
 
     //失败带错误信息
     public static Result fail(String msg){
         return new Result<>(1,msg,null,System.currentTimeMillis());
     }
+
 
 }

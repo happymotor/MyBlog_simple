@@ -30,8 +30,8 @@ public class User {
     @Pattern(regexp = RegexPatternsUtils.PASSWORD_REGEX)
     private  String password;//用户密码
 
-
     private String nickname;//昵称
+
     @Email
     private String email;//邮箱
     private Byte status;//状态 0-禁用 1-启用

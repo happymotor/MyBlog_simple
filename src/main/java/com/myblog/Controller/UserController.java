@@ -1,16 +1,21 @@
 package com.myblog.Controller;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.myblog.Dto.PageDto;
 import com.myblog.Dto.Result;
-import com.myblog.Dto.UserLoginResponse;
+import com.myblog.Dto.UserPageDto;
+import com.myblog.VO.PageVO;
+import com.myblog.VO.UserInfoVO;
+import com.myblog.VO.UserLoginVO;
 import com.myblog.Dto.UserRegisterDto;
 import com.myblog.Service.UserService;
 import com.myblog.Utils.JwtUtil;
 import com.myblog.Utils.Md5Util;
 import com.myblog.Utils.RedisPrefixUtil;
+import com.myblog.VO.UserTokenVO;
 import com.myblog.pojo.User;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.val;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.StringUtils;
@@ -40,7 +45,7 @@ public class UserController {
 
      //用户登录接口
      @PostMapping("/login")
-     public Result<UserLoginResponse> userLogin(@RequestBody Map<String, Object> map){
+     public Result<UserLoginVO> userLogin(@RequestBody Map<String, Object> map){
           String username=(String)map.get("username");
           String password=(String)map.get("password");
           Boolean rememberMe=(Boolean) map.get("rememberMe");
@@ -66,9 +71,12 @@ public class UserController {
                                     ?JwtUtil.generateRefreshTokenLong(claims)
                                     :JwtUtil.generateRefreshToken(claims);
 
-              UserLoginResponse userLoginResponse= new UserLoginResponse(accessToken,refreshToken);
+              UserLoginVO userLoginVO = new UserLoginVO();
+              userLoginVO.setAccessToken(accessToken);
+              userLoginVO.setRefreshToken(refreshToken);
+              userLoginVO.setUserInfoVO(BeanUtil.copyProperties(user, UserInfoVO.class));
 
-              return Result.success(userLoginResponse);
+              return Result.success(userLoginVO);
           }
 
           //校验密码不通过
@@ -104,7 +112,7 @@ public class UserController {
 
      //刷新accessToken令牌方法
      @PostMapping("/refresh")
-     public Result<UserLoginResponse> tokenRefresh(@RequestBody Map<String,Object> map){
+     public Result<UserTokenVO> tokenRefresh(@RequestBody Map<String,Object> map){
         String refreshToken = map.get("refreshToken").toString();
         //检验不为空
         if(refreshToken==null){
@@ -113,7 +121,7 @@ public class UserController {
         //解析令牌
         Map<String,Object> claims = JwtUtil.parseToken(refreshToken);
         String newAccessToken = JwtUtil.generateAccessToken(claims);
-        return Result.success(new UserLoginResponse(newAccessToken,refreshToken));
+        return Result.success(new UserTokenVO(newAccessToken,refreshToken));
      }
 
 
@@ -137,6 +145,12 @@ public class UserController {
         }
         return Result.success();
      }
+
+      //用户分页列表查询接口
+      @GetMapping("/user/list")
+      public Result<PageVO<UserInfoVO>> userQueryPages( @Validated UserPageDto userPageDto){
+        return Result.success(userService.userQueryPages(userPageDto));
+      }
 
 
 

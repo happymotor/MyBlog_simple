@@ -24,7 +24,6 @@ public class LoginInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
-
         //获取请求头，令牌验证
         String authHeader=request.getHeader("Authorization");
 
