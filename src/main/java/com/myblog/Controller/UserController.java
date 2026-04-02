@@ -1,17 +1,16 @@
 package com.myblog.Controller;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.myblog.Dto.PageDto;
-import com.myblog.Dto.Result;
-import com.myblog.Dto.UserPageDto;
-import com.myblog.VO.PageVO;
+import com.myblog.Common.Result;
+import com.myblog.Common.TokenTimeConstants;
+import com.myblog.Utils.ThreadLocalUtil;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.VO.UserLoginVO;
 import com.myblog.Dto.UserRegisterDto;
 import com.myblog.Service.UserService;
 import com.myblog.Utils.JwtUtil;
 import com.myblog.Utils.Md5Util;
-import com.myblog.Utils.RedisPrefixUtil;
+import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.VO.UserTokenVO;
 import com.myblog.pojo.User;
 import jakarta.annotation.Resource;
@@ -59,28 +58,53 @@ public class UserController {
           if(user==null ){
                return Result.fail("用户名或者密码错误");
           }
-          //校验密码通过
-          if(Md5Util.getMD5String(password).equals(user.getPassword())){
-              Map<String,Object> claims=new HashMap<>();
-              claims.put("userId",user.getUserId());
-              claims.put("username",username);
 
-              //生成token响应
-              String accessToken=JwtUtil.generateAccessToken(claims);
-              String refreshToken=rememberMe
-                                    ?JwtUtil.generateRefreshTokenLong(claims)
-                                    :JwtUtil.generateRefreshToken(claims);
+         //校验是否被禁用或者被删除
+         if(user.getStatus().equals((byte) 0)){
+             return Result.fail("该用户已被禁用，无法登录");
+         }
 
-              UserLoginVO userLoginVO = new UserLoginVO();
-              userLoginVO.setAccessToken(accessToken);
-              userLoginVO.setRefreshToken(refreshToken);
-              userLoginVO.setUserInfoVO(BeanUtil.copyProperties(user, UserInfoVO.class));
-
-              return Result.success(userLoginVO);
-          }
+         if(user.getIsDeleted().equals(Boolean.TRUE)){
+             return Result.fail("该用户已被删除，无法登录");
+         }
 
           //校验密码不通过
-          return Result.fail("用户名或者密码错误");
+          if(!Md5Util.getMD5String(password).equals(user.getPassword())){
+              return Result.fail("用户名或者密码错误");
+          }
+
+         //校验密码通过
+         Map<String,Object> claims=new HashMap<>();
+         claims.put("userId",user.getUserId());
+         claims.put("username",username);
+         claims.put("status",user.getStatus());
+         claims.put("isDeleted",user.getIsDeleted());
+
+         //生成token响应
+         String accessToken=JwtUtil.generateAccessToken(claims);
+         String refreshToken=rememberMe
+                 ?JwtUtil.generateRefreshTokenLong(claims)
+                 :JwtUtil.generateRefreshToken(claims);
+
+         //把用户当前的所持有的所有token存入reids中便于后续管理
+         String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+user.getUserId();
+         String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+user.getUserId();
+         stringRedisTemplate.opsForSet().add(accessKey, accessToken);
+         stringRedisTemplate.opsForSet().add(refreshKey, refreshToken);
+
+         stringRedisTemplate.expire(accessKey,
+                                    TokenTimeConstants.ACCESS_TOKEN_EXPIRE,
+                                    TimeUnit.MILLISECONDS);
+         stringRedisTemplate.expire(refreshKey,
+                                    rememberMe ?TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE :TokenTimeConstants.REFRESH_TOKEN_EXPIRE,
+                                    TimeUnit.MILLISECONDS);
+
+         UserLoginVO userLoginVO = new UserLoginVO();
+         userLoginVO.setAccessToken(accessToken);
+         userLoginVO.setRefreshToken(refreshToken);
+         userLoginVO.setUserInfoVO(BeanUtil.copyProperties(user, UserInfoVO.class));
+
+         return Result.success(userLoginVO);
 
      }
 
@@ -121,6 +145,19 @@ public class UserController {
         //解析令牌
         Map<String,Object> claims = JwtUtil.parseToken(refreshToken);
         String newAccessToken = JwtUtil.generateAccessToken(claims);
+
+         //把用户当前的刷新得到的accessToken存入reids中便于后续管理
+         String userId= claims.get("userId").toString();
+
+         String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
+
+         stringRedisTemplate.opsForSet().add(accessKey, newAccessToken);
+
+
+         stringRedisTemplate.expire(accessKey, TokenTimeConstants.ACCESS_TOKEN_EXPIRE, TimeUnit.MILLISECONDS);
+
+
+
         return Result.success(new UserTokenVO(newAccessToken,refreshToken));
      }
 
@@ -128,21 +165,7 @@ public class UserController {
       //用户登出接口
       @PostMapping("/logout")
       public Result userLogout(HttpServletRequest request){
-        //获取请求头，令牌验证
-        String authHeader=request.getHeader("Authorization");
-        //解析令牌
-        // 没有请求头或者token格式不对
-        if(authHeader==null||!authHeader.startsWith("Bearer ")){
-            return Result.fail("请求错误");
-        }
-        //去掉“Bearer ”
-        String accessToken=authHeader.substring(7);
-        //解析获取过期时间
-        long remainingTime=JwtUtil.getRemainingTimes(accessToken);
-        if(remainingTime>0){
-            String redisKey=RedisPrefixUtil.BLACKLIST_KEY_PREFIX+accessToken;
-            stringRedisTemplate.opsForValue().set(redisKey,"black",remainingTime, TimeUnit.MILLISECONDS);
-        }
+        userService.userLogout(request);
         return Result.success();
      }
 

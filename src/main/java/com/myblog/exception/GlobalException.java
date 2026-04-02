@@ -1,6 +1,6 @@
 package com.myblog.exception;
 
-import com.myblog.Dto.Result;
+import com.myblog.Common.Result;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;

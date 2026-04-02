@@ -5,19 +5,45 @@ import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.Dto.UserPageDto;
 import com.myblog.Mapper.AdminUserMapper;
 import com.myblog.Service.AdminUserService;
+import com.myblog.Service.UserService;
+import com.myblog.Utils.JwtUtil;
 import com.myblog.VO.PageVO;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.pojo.User;
+import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> implements  AdminUserService {
+
+    @Autowired
+    private UserService userService;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Override
+    public User getByUserName(String username) {
+        return userService.getByUserName(username);
+    }
+
+    @Override
+    public User getByUserId(Integer userId) {
+        return this.getById(userId);
+    }
+
     @Override
     public PageVO<UserInfoVO> userQueryPages(UserPageDto userPageDto) {
         String keyword = userPageDto.getKeyword();
@@ -54,4 +80,34 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
         //4.返回
         return vo;
     }
+
+    // 将存于redis中的该user对象的所有token取出并加入到黑名单
+    @Override
+    public void userStatusUpdate(User user) {
+        updateById(user);
+        Integer userId=user.getUserId();
+
+        //记录用户所持有token的key
+        String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
+        String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+userId;
+
+        //获取该用户所有token并加入黑名单
+        Set<String> accessTokens = stringRedisTemplate.opsForSet().members(accessKey);
+        if(accessTokens!=null) {
+            for (String accessToken : accessTokens) {
+                JwtUtil.addTokenToBlackList(accessToken);
+            }
+        }
+
+        Set<String> refreshTokens = stringRedisTemplate.opsForSet().members(refreshKey);
+        if(refreshTokens!=null) {
+            for (String refreshToken : refreshTokens) {
+                JwtUtil.addTokenToBlackList(refreshToken);
+            }
+        }
+        stringRedisTemplate.delete(accessKey);
+        stringRedisTemplate.delete(refreshKey);
+
+    }
+
 }

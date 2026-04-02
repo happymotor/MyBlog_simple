@@ -4,6 +4,7 @@ package com.myblog.Service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.myblog.Dto.UserRegisterDto;
 import com.myblog.pojo.User;
+import jakarta.servlet.http.HttpServletRequest;
 
 public interface UserService extends IService<User>{
 
@@ -14,4 +15,5 @@ public interface UserService extends IService<User>{
     void userRegister(UserRegisterDto userRegisterDto);
 
 
+    void userLogout(HttpServletRequest request);
 }

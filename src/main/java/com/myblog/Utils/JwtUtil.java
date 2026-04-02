@@ -1,41 +1,55 @@
 package com.myblog.Utils;
 
 
+import com.myblog.Common.RedisPrefixConstants;
+import com.myblog.Common.TokenTimeConstants;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+//TODO 后续component需要删除
+@Component
 public class JwtUtil {
+
+    private JwtUtil(){}
+
+    //@Resource
+    private static StringRedisTemplate stringRedisTemplate;
+
+    //TODO 后续需要删除
+    @Autowired
+    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
+        JwtUtil.stringRedisTemplate = stringRedisTemplate;
+    }
 
     //创建密钥
     private static final String SECRET_KEY = "hello,myblog,aaabbbcccdddeeefff12345";
-    //ACCESS_TOKEN过期时间 2小时
-    private static final long ACCESS_TOKEN_EXPIRE=2*60*60*1000;
-    //REFRESH_TOKEN过期时间 7天
-    private static final long REFRESH_TOKEN_EXPIRE=7*24*60*60*1000;
-    //REFRESH_TOKEN_LONG过期时间 20天,用于登录延长时间
-    private static final long REFRESH_TOKEN_LONG_EXPIRE=20*24*60*60*1000;
 
     // 将字符串密钥转换为 HMAC256 所需的 Key 对象
     private static final Key KEY = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
 
     //生成accessToken
     public static String generateAccessToken(Map<String,Object> claims){
-        return generateToken(claims,ACCESS_TOKEN_EXPIRE,"access");
+        return generateToken(claims, TokenTimeConstants.ACCESS_TOKEN_EXPIRE,"access");
     }
 
     //生成refreshToken
     public static String generateRefreshToken(Map<String,Object> claims){
-        return generateToken(claims,REFRESH_TOKEN_EXPIRE,"refresh");
+        return generateToken(claims,TokenTimeConstants.REFRESH_TOKEN_EXPIRE,"refresh");
     }
 
     //生成refreshTokenLong
     public static String generateRefreshTokenLong(Map<String,Object> claims){
-        return generateToken(claims,REFRESH_TOKEN_LONG_EXPIRE,"refresh");
+        return generateToken(claims,TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE,"refresh");
     }
 
 
@@ -67,6 +81,16 @@ public class JwtUtil {
         //修改将Integer转化为long的方法
         long expSecondTime = Long.parseLong(claims.get("exp").toString());
         return expSecondTime*1000-System.currentTimeMillis();
+    }
+
+    //把令牌加入redis黑名单
+    public static void addTokenToBlackList(String token){
+        //解析获取过期时间
+        long remainingTime= JwtUtil.getRemainingTimes(token);
+        if(remainingTime>0){
+            String redisKey= RedisPrefixConstants.BLACKLIST_KEY_PREFIX+token;
+            stringRedisTemplate.opsForValue().set(redisKey,"black",remainingTime, TimeUnit.MILLISECONDS);
+        }
     }
 
 

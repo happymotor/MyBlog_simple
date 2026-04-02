@@ -1,6 +1,7 @@
-package com.myblog.Utils;
+package com.myblog.Common;
 
-public class ResultCodeUtil {
+public class ResultCodeConstants {
+    private ResultCodeConstants(){}
     // ==================== 通用成功状态码 ====================
     public static final int SUCCESS_CODE = 200;
     public static final String SUCCESS_MSG = "操作成功";

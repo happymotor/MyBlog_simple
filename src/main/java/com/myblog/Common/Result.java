@@ -1,4 +1,4 @@
-package com.myblog.Dto;
+package com.myblog.Common;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

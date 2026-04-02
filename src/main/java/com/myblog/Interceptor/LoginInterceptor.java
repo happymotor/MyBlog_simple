@@ -1,13 +1,11 @@
 package com.myblog.Interceptor;
 
 import com.myblog.Utils.JwtUtil;
-import com.myblog.Utils.RedisPrefixUtil;
+import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.Utils.ThreadLocalUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.aopalliance.intercept.Interceptor;
-import org.apache.coyote.Response;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
@@ -38,14 +36,16 @@ public class LoginInterceptor implements HandlerInterceptor {
             String accessToken=authHeader.substring(7);
 
             //校验是否为黑名单令牌
-            String redisKey= RedisPrefixUtil.BLACKLIST_KEY_PREFIX+accessToken;
+            String redisKey= RedisPrefixConstants.BLACKLIST_KEY_PREFIX+accessToken;
             if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey))){
                 response.setStatus(401);
                 return false;
             }
 
-            //将数据存储到ThreadLocal
+            //获取自定义载荷信息
             Map<String ,Object> claims= JwtUtil.parseToken(accessToken);
+
+            //将数据存储到ThreadLocal
             ThreadLocalUtil.set(claims);
             //成功
             return true;
