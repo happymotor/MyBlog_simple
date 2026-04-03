@@ -41,6 +41,10 @@ public class AdminUserController {
         if(status!=0&&status!=1){
             return Result.fail("status只能为0或者1");
         }
+        if(status.equals(user.getStatus())){
+            return Result.fail("修改状态不可以与用户当前状态一致");
+        }
+
         user.setStatus(status);
         adminUserService.userStatusUpdate(user);
         return Result.success();

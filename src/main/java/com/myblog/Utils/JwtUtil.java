@@ -22,15 +22,6 @@ public class JwtUtil {
 
     private JwtUtil(){}
 
-    //@Resource
-    private static StringRedisTemplate stringRedisTemplate;
-
-    //TODO 后续需要删除
-    @Autowired
-    public void setStringRedisTemplate(StringRedisTemplate stringRedisTemplate) {
-        JwtUtil.stringRedisTemplate = stringRedisTemplate;
-    }
-
     //创建密钥
     private static final String SECRET_KEY = "hello,myblog,aaabbbcccdddeeefff12345";
 
@@ -82,17 +73,4 @@ public class JwtUtil {
         long expSecondTime = Long.parseLong(claims.get("exp").toString());
         return expSecondTime*1000-System.currentTimeMillis();
     }
-
-    //把令牌加入redis黑名单
-    public static void addTokenToBlackList(String token){
-        //解析获取过期时间
-        long remainingTime= JwtUtil.getRemainingTimes(token);
-        if(remainingTime>0){
-            String redisKey= RedisPrefixConstants.BLACKLIST_KEY_PREFIX+token;
-            stringRedisTemplate.opsForValue().set(redisKey,"black",remainingTime, TimeUnit.MILLISECONDS);
-        }
-    }
-
-
-
 }

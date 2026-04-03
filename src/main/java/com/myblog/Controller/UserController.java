@@ -3,6 +3,7 @@ package com.myblog.Controller;
 import cn.hutool.core.bean.BeanUtil;
 import com.myblog.Common.Result;
 import com.myblog.Common.TokenTimeConstants;
+import com.myblog.Dto.UserLoginDto;
 import com.myblog.Utils.ThreadLocalUtil;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.VO.UserLoginVO;
@@ -44,15 +45,12 @@ public class UserController {
 
      //用户登录接口
      @PostMapping("/login")
-     public Result<UserLoginVO> userLogin(@RequestBody Map<String, Object> map){
-          String username=(String)map.get("username");
-          String password=(String)map.get("password");
-          Boolean rememberMe=(Boolean) map.get("rememberMe");
-          //输入了空用户名或者密码，则登录失败
-          if(!StringUtils.hasLength(username)||!StringUtils.hasLength(password)){
-               return Result.fail("用户名或者密码错误");
-          }
+     public Result<UserLoginVO> userLogin(@RequestBody @Validated UserLoginDto userLoginDto){
+          String username=userLoginDto.getUsername();
+          String password=userLoginDto.getPassword();
+          Boolean rememberMe=userLoginDto.getRememberMe();
 
+          //获取用户
           User user=userService.getByUserName(username);
           //用户不存在
           if(user==null ){
@@ -74,35 +72,7 @@ public class UserController {
           }
 
          //校验密码通过
-         Map<String,Object> claims=new HashMap<>();
-         claims.put("userId",user.getUserId());
-         claims.put("username",username);
-         claims.put("status",user.getStatus());
-         claims.put("isDeleted",user.getIsDeleted());
-
-         //生成token响应
-         String accessToken=JwtUtil.generateAccessToken(claims);
-         String refreshToken=rememberMe
-                 ?JwtUtil.generateRefreshTokenLong(claims)
-                 :JwtUtil.generateRefreshToken(claims);
-
-         //把用户当前的所持有的所有token存入reids中便于后续管理
-         String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+user.getUserId();
-         String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+user.getUserId();
-         stringRedisTemplate.opsForSet().add(accessKey, accessToken);
-         stringRedisTemplate.opsForSet().add(refreshKey, refreshToken);
-
-         stringRedisTemplate.expire(accessKey,
-                                    TokenTimeConstants.ACCESS_TOKEN_EXPIRE,
-                                    TimeUnit.MILLISECONDS);
-         stringRedisTemplate.expire(refreshKey,
-                                    rememberMe ?TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE :TokenTimeConstants.REFRESH_TOKEN_EXPIRE,
-                                    TimeUnit.MILLISECONDS);
-
-         UserLoginVO userLoginVO = new UserLoginVO();
-         userLoginVO.setAccessToken(accessToken);
-         userLoginVO.setRefreshToken(refreshToken);
-         userLoginVO.setUserInfoVO(BeanUtil.copyProperties(user, UserInfoVO.class));
+         UserLoginVO userLoginVO =userService.userLogin(user,rememberMe);
 
          return Result.success(userLoginVO);
 
@@ -142,23 +112,9 @@ public class UserController {
         if(refreshToken==null){
             return Result.fail("refreshToken不能为空");
         }
-        //解析令牌
-        Map<String,Object> claims = JwtUtil.parseToken(refreshToken);
-        String newAccessToken = JwtUtil.generateAccessToken(claims);
+         UserTokenVO userTokenVO=userService.getUserTokenVO(refreshToken);
 
-         //把用户当前的刷新得到的accessToken存入reids中便于后续管理
-         String userId= claims.get("userId").toString();
-
-         String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
-
-         stringRedisTemplate.opsForSet().add(accessKey, newAccessToken);
-
-
-         stringRedisTemplate.expire(accessKey, TokenTimeConstants.ACCESS_TOKEN_EXPIRE, TimeUnit.MILLISECONDS);
-
-
-
-        return Result.success(new UserTokenVO(newAccessToken,refreshToken));
+        return Result.success(userTokenVO);
      }
 
 

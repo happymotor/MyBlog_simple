@@ -34,6 +34,9 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
+    @Autowired
+    private TokenRedisService tokenRedisService;
+
     @Override
     public User getByUserName(String username) {
         return userService.getByUserName(username);
@@ -85,29 +88,13 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
     @Override
     public void userStatusUpdate(User user) {
         updateById(user);
+        //判断如果修改前是禁用状态（0）就不进行下面步骤，因为之前肯定没有jwt令牌
+        if(user.getStatus()==1){
+            return;
+        }
         Integer userId=user.getUserId();
 
-        //记录用户所持有token的key
-        String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
-        String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+userId;
-
-        //获取该用户所有token并加入黑名单
-        Set<String> accessTokens = stringRedisTemplate.opsForSet().members(accessKey);
-        if(accessTokens!=null) {
-            for (String accessToken : accessTokens) {
-                JwtUtil.addTokenToBlackList(accessToken);
-            }
-        }
-
-        Set<String> refreshTokens = stringRedisTemplate.opsForSet().members(refreshKey);
-        if(refreshTokens!=null) {
-            for (String refreshToken : refreshTokens) {
-                JwtUtil.addTokenToBlackList(refreshToken);
-            }
-        }
-        stringRedisTemplate.delete(accessKey);
-        stringRedisTemplate.delete(refreshKey);
-
+        tokenRedisService.addAllTokensToBlackList(userId);
     }
 
 }
