@@ -2,28 +2,27 @@ package com.myblog.Service.Impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.Dto.UserPageDto;
 import com.myblog.Mapper.AdminUserMapper;
 import com.myblog.Service.AdminUserService;
+import com.myblog.Service.RoleService;
+import com.myblog.Service.UserRoleService;
 import com.myblog.Service.UserService;
-import com.myblog.Utils.JwtUtil;
 import com.myblog.VO.PageVO;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.pojo.User;
+import com.myblog.pojo.UserRole;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> implements  AdminUserService {
@@ -37,13 +36,20 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
     @Autowired
     private TokenRedisService tokenRedisService;
 
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private UserRoleService userRoleService;
+
+
     @Override
     public User getByUserName(String username) {
         return userService.getByUserName(username);
     }
 
     @Override
-    public User getByUserId(Integer userId) {
+    public User getByUserId(Long userId) {
         return this.getById(userId);
     }
 
@@ -92,9 +98,34 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
         if(user.getStatus()==1){
             return;
         }
-        Integer userId=user.getUserId();
+        Long userId=user.getUserId();
 
         tokenRedisService.addAllTokensToBlackList(userId);
+    }
+
+    @Override
+    public void userRoleAssign(Long userId, List<Long> roleIds) {
+        User user=getByUserId(userId);
+        //千万不可以用user.setRoles(null);
+        user.getRoles().clear();
+        
+        //删除用户角色表中该用户的原数据
+        userRoleService.remove(
+                new LambdaQueryWrapper<UserRole>()
+                        .eq(UserRole::getUserId,userId)
+        );
+
+        for(Long roleId:roleIds){
+            String roleCode=roleService.getRoleById(roleId).getRoleCode();
+            user.getRoles().add(roleCode);
+            //更新用户角色表
+            UserRole userRole=new UserRole();
+            userRole.setUserId(userId);
+            userRole.setRoleId(roleId);
+            userRoleService.save(userRole);
+        }
+        //更新用户中role信息
+        updateById(user);
     }
 
 }

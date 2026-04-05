@@ -13,6 +13,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -21,7 +23,7 @@ import java.time.LocalDateTime;
 public class User {
 
     @TableId(type = IdType.AUTO)
-    private Integer userId;//用户id 主键
+    private Long userId;//用户id 主键
 
     @Pattern(regexp = RegexPatternsConstants.USERNAME_REGEX,
             message = "长度应为3~20位的字母、数字或者下划线")
@@ -40,5 +42,9 @@ public class User {
     private LocalDateTime updateTime;//更新时间
     @TableField("is_deleted")
     private Boolean isDeleted;//用户是否被删除 0-未删除 1-删除
+
+    //不在数据库的字段：role
+    @TableField(exist = false)
+    private List<String> roles=new ArrayList<>();
 
 }

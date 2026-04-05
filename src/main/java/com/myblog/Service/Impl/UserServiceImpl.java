@@ -4,19 +4,20 @@ package com.myblog.Service.Impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
-import com.myblog.Common.TokenTimeConstants;
+import com.myblog.Common.RoleConstants;
 import com.myblog.Dto.UserRegisterDto;
 import com.myblog.Mapper.UserMapper;
+import com.myblog.Service.UserRoleService;
 import com.myblog.Service.UserService;
 
 import com.myblog.Utils.JwtUtil;
 import com.myblog.Utils.Md5Util;
 
-import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.VO.UserLoginVO;
 import com.myblog.VO.UserTokenVO;
 import com.myblog.pojo.User;
+import com.myblog.pojo.UserRole;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 
 @Service
@@ -39,6 +39,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
 
     @Autowired
     private TokenRedisService tokenRedisService;
+
+    @Autowired
+    private UserRoleService userRoleService;
 
 
     @Override
@@ -84,7 +87,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         user.setPassword(Md5Util.getMD5String(userRegisterDto.getPassword()));
         user.setNickname(userRegisterDto.getNickname());
         user.setEmail(userRegisterDto.getEmail());
-        userMapper.insert(user);
+        //如果为null或者空集合，则赋值
+        if(user.getRoles().isEmpty()){
+            user.getRoles().add(RoleConstants.ROLE_CODE_USER);
+        }
+        this.save(user);
+        UserRole userRole=new UserRole();
+        userRole.setUserId(user.getUserId());
+        userRole.setRoleId(RoleConstants.ROLE_ID_USER);
+        userRoleService.save(userRole);
     }
 
     @Override
@@ -94,7 +105,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper,User> implements Use
         String newAccessToken = JwtUtil.generateAccessToken(claims);
 
         //把用户当前的刷新得到的accessToken存入reids中便于后续管理
-        Integer userId= (Integer) claims.get("userId");
+        Long userId= (Long) claims.get("userId");
         tokenRedisService.saveAccessToken(userId,newAccessToken);
 
         return new UserTokenVO(newAccessToken,refreshToken);

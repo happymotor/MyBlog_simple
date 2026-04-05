@@ -3,8 +3,10 @@ package com.myblog.Controller;
 
 import com.myblog.Common.Result;
 import com.myblog.Dto.UserPageDto;
+import com.myblog.Dto.UserRoleAssignDto;
 import com.myblog.Dto.UserStatusUpdateDto;
 import com.myblog.Service.AdminUserService;
+import com.myblog.Service.RoleService;
 import com.myblog.VO.PageVO;
 import com.myblog.VO.UserInfoVO;
 import com.myblog.pojo.User;
@@ -12,6 +14,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/user")
@@ -28,10 +32,9 @@ public class AdminUserController {
     }
 
 
-    //TODO 目前逻辑错误，登出变成了自己登出，但应该是操作用户id的登出
     //用户状态修改接口
     @PatchMapping("/status/{userId}")
-    public Result userStatusUpdate(@PathVariable Integer userId,
+    public Result userStatusUpdate(@PathVariable Long userId,
                                    @RequestBody @Validated UserStatusUpdateDto userStatusUpdateDto){
         User user = adminUserService.getByUserId(userId);
         if(user==null){
@@ -49,5 +52,36 @@ public class AdminUserController {
         adminUserService.userStatusUpdate(user);
         return Result.success();
     }
+
+    //用户角色分配接口
+    @PutMapping("/role/{userId}")
+    public  Result UserRoleAssign(@PathVariable Long userId,
+                                  @RequestBody @Validated UserRoleAssignDto userRoleAssignDto){
+         List<Long> roleIds=userRoleAssignDto.getRoleIds();
+
+         if(userId==null){
+             return Result.fail("用户id不能为空");
+         }
+
+         if(roleIds.contains(1L)){
+             return Result.fail("不可以分配Root角色给任意用户");
+         }
+
+         adminUserService.userRoleAssign(userId,roleIds);
+
+         return Result.success();
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
 }

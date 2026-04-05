@@ -18,24 +18,24 @@ public class TokenRedisService {
     private StringRedisTemplate stringRedisTemplate;
 
     //内部方法保存用户单个token
-    private void saveUserToken(Integer userId,String token,String prefix,long expire){
+    private void saveUserToken(Long userId,String token,String prefix,long expire){
         String key=prefix+userId;
         stringRedisTemplate.opsForSet().add(key, token);
         stringRedisTemplate.expire(key,expire, TimeUnit.MILLISECONDS);
     }
 
     //保存accessToken
-    public void saveAccessToken(Integer userId,String accessToken){
+    public void saveAccessToken(Long userId,String accessToken){
         saveUserToken(userId,accessToken, RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX,TokenTimeConstants.ACCESS_TOKEN_EXPIRE);
     }
 
     //保存refreshToken
-    public void saveRefreshToken(Integer userId,String refreshToken){
+    public void saveRefreshToken(Long userId,String refreshToken){
         saveUserToken(userId,refreshToken, RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_EXPIRE);
     }
 
     //保存refreshLongToken
-    public void saveRefreshLongToken(Integer userId,String refreshLongToken){
+    public void saveRefreshLongToken(Long userId,String refreshLongToken){
         saveUserToken(userId,refreshLongToken, RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE);
     }
 
@@ -50,7 +50,7 @@ public class TokenRedisService {
     }
 
     //将用户所有令牌加入黑名单
-    public  void addAllTokensToBlackList(Integer userId){
+    public  void addAllTokensToBlackList(Long userId){
         //记录用户所持有token的key
         String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
         String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+userId;
