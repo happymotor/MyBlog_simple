@@ -26,6 +26,4 @@ public class PageDto {
     private  String keyword;
 
 
-
-
 }

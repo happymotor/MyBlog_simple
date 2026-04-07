@@ -60,7 +60,7 @@ public class AdminUserServiceImpl extends ServiceImpl<AdminUserMapper, User> imp
         //1.构建分页条件
         Page<User> page=Page.of(userPageDto.getPageNum(),userPageDto.getPageSize());
         //排序规则
-        page.addOrder( OrderItem.desc("update_time"));
+        //page.addOrder( OrderItem.desc("update_time"));
 
         //2.分页查询
         Page<User> p = lambdaQuery().eq(status != null, User::getStatus, status)
