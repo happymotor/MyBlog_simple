@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
@@ -33,14 +34,26 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     public List<CategoryQueryVO> categoryQuery(CategoryQueryDto categoryQueryDto, Boolean hasAdminRole) {
-        String keyword=categoryQueryDto.getKeyword();
-        Byte status=hasAdminRole?categoryQueryDto.getStatus():1;
+        //如果没有传任何参数，先对categoryQueryDto进行判空操作
+        String keyword=null;
+        Byte status=null;
+        if(categoryQueryDto!=null){
+             keyword= categoryQueryDto.getKeyword();
+        }
+        if(Boolean.FALSE.equals(hasAdminRole)){
+             status=(byte)1;
+        }else if(categoryQueryDto!=null){
+            status=categoryQueryDto.getStatus();
+        }
 
         List<Category> categoryList = lambdaQuery()
                 //MyBatis-Plus 的`like`方法默认不做非空判断
                 .like(StringUtils.hasText(keyword),Category::getCategoryName, keyword)
-                .eq(Category::getStatus, status)
+                //MyBatis-Plus都不会自动做非空判断
+                .eq(Objects.nonNull(status),Category::getStatus, status)
                 .list();
+
+
         return BeanUtil.copyToList(categoryList, CategoryQueryVO.class);
     }
 }
