@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CategoryAddDto {
+public class CategoryAddAndUpdateDto {
 
     //栏目名称
     @NotEmpty

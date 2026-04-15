@@ -14,7 +14,13 @@ import java.util.List;
 public interface CategoryService extends IService<Category> {
     Category getByCategoryName(@NotEmpty @Pattern(regexp= RegexPatternsConstants.CATEGORY_NAME_REGEX) String categoryName);
 
+    Category getByCategoryId(Long categoryId);
+
     void categoryAdd(Category category);
 
     List<CategoryQueryVO> categoryQuery(CategoryQueryDto categoryQueryDto, Boolean hasAdminRole);
+
+    void categoryUpdate(Category category);
+
+
 }

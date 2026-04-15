@@ -2,10 +2,9 @@ package com.myblog.Controller;
 
 import com.myblog.Common.Result;
 import com.myblog.Common.RoleConstants;
-import com.myblog.Dto.CategoryAddDto;
+import com.myblog.Dto.CategoryAddAndUpdateDto;
 import com.myblog.Dto.CategoryQueryDto;
 import com.myblog.Service.CategoryService;
-import com.myblog.Utils.ThreadLocalUtil;
 import com.myblog.Utils.UserHolderUtil;
 import com.myblog.VO.CategoryQueryVO;
 import com.myblog.pojo.Category;
@@ -25,14 +24,14 @@ public class CategoryController {
 
     //栏目新增接口
     @PostMapping("/admin/category")
-    public Result categoryAdd(@RequestBody @Validated CategoryAddDto categoryAddDto){
+    public Result categoryAdd(@RequestBody @Validated CategoryAddAndUpdateDto categoryAddAndUpdateDto){
         //判断是否已经存在该栏目
-        if(categoryService.getByCategoryName(categoryAddDto.getCategoryName())!=null){
+        if(categoryService.getByCategoryName(categoryAddAndUpdateDto.getCategoryName())!=null){
             return Result.fail("不能新增已存在的栏目");
         }
         Category category=new Category();
-        category.setCategoryName(categoryAddDto.getCategoryName());
-        category.setStatus(categoryAddDto.getStatus());
+        category.setCategoryName(categoryAddAndUpdateDto.getCategoryName());
+        category.setStatus(categoryAddAndUpdateDto.getStatus());
         categoryService.categoryAdd(category);
         return Result.success();
     }
@@ -46,6 +45,21 @@ public class CategoryController {
                 ||roleIds.contains(RoleConstants.ROLE_ID_ROOT);
 
         return Result.success(categoryService.categoryQuery(categoryQueryDto,hasAdminRole));
+    }
+
+    @PutMapping("/admin/category/{categoryId}")
+    public Result categoryUpdate(@RequestBody @Validated CategoryAddAndUpdateDto categoryAddAndUpdateDto,
+                                 @PathVariable Long categoryId){
+        //判断是否已经存在该栏目
+        if(categoryService.getByCategoryId(categoryId)==null){
+            return Result.fail("不能修改不存在的栏目");
+        }
+        Category category=new Category();
+        category.setCategoryId(categoryId);
+        category.setCategoryName(categoryAddAndUpdateDto.getCategoryName());
+        category.setStatus(categoryAddAndUpdateDto.getStatus());
+        categoryService.categoryUpdate(category);
+        return Result.success();
     }
 
 

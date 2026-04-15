@@ -35,6 +35,11 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     }
 
     @Override
+    public Category getByCategoryId(Long categoryId) {
+        return getById(categoryId);
+    }
+
+    @Override
     public void categoryAdd(Category category) {
 
         this.save(category);
@@ -52,7 +57,6 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         }else{
             key.append("null:null");
         }
-
 
         List<Category> categoryList =redisCacheUtil.queryWithLogicalExpire(
                 CacheConstants.CACHE_CATEGORY_PREFIX,
@@ -85,4 +89,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return BeanUtil.copyToList(categoryList, CategoryQueryVO.class);
 
     }
+
+    @Override
+    public void categoryUpdate(Category category) {
+        this.updateById(category);
+
+        redisCacheUtil.deleteBatch(CacheConstants.CACHE_CATEGORY_PREFIX+"*");
+    }
+
+
 }
