@@ -23,4 +23,5 @@ public interface CategoryService extends IService<Category> {
     void categoryUpdate(Category category);
 
 
+    void categoryDelete(Category category);
 }

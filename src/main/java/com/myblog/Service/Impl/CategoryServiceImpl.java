@@ -30,6 +30,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     public Category getByCategoryName(String categoryName) {
         return lambdaQuery()
                 .eq(Category::getCategoryName,categoryName)
+                .eq(Category::getIsDeleted,Boolean.FALSE)
                 .one();
 
     }
@@ -39,6 +40,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         return getById(categoryId);
     }
 
+    //栏目新增
     @Override
     public void categoryAdd(Category category) {
 
@@ -47,6 +49,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         redisCacheUtil.deleteBatch(CacheConstants.CACHE_CATEGORY_PREFIX+"*");
     }
 
+    //栏目列表查询
     @Override
     public List<CategoryQueryVO> categoryQuery(CategoryQueryDto categoryQueryDto, Boolean hasAdminRole) {
 
@@ -81,6 +84,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                             .like(StringUtils.hasText(keyword),Category::getCategoryName, keyword)
                             //MyBatis-Plus都不会自动做非空判断
                             .eq(Objects.nonNull(status),Category::getStatus, status)
+                            //判断不是已删除的栏目
+                            .eq(Category::getIsDeleted,Boolean.FALSE)
                             .list();
                 },
                 CacheConstants.CACHE_CATEGORY_TTL,
@@ -90,10 +95,21 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     }
 
+    //栏目更新
     @Override
     public void categoryUpdate(Category category) {
         this.updateById(category);
 
+        redisCacheUtil.deleteBatch(CacheConstants.CACHE_CATEGORY_PREFIX+"*");
+    }
+
+    //栏目删除
+    @Override
+    public void categoryDelete(Category category) {
+        category.setIsDeleted(Boolean.TRUE);
+        //逻辑删除
+        this.updateById(category);
+        //清除旧缓存
         redisCacheUtil.deleteBatch(CacheConstants.CACHE_CATEGORY_PREFIX+"*");
     }
 
