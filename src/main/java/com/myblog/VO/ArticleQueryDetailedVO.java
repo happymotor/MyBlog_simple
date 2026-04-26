@@ -1,7 +1,6 @@
 package com.myblog.VO;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.myblog.Common.RegexPatternsConstants;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -16,35 +15,34 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ArticlePageInfoVO {
+public class ArticleQueryDetailedVO {
 
     private Long articleId;
 
     private String title;
 
+    private String content;
+
+    private String htmlContent;
+
     private String summary;
 
     private Long categoryId;
 
-    //栏目名称
     private String categoryName;
 
     private Long authorId;
 
-    //作者名称
     private String authorName;
 
-
-    //TODO 需要新增的tags字段
     private List<String> tags;
 
-    //文章状态：0-草稿，1-已发表，2-回收站
     private Byte status;
 
-    //浏览量
     private Long viewCount;
 
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+
 }

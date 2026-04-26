@@ -1,9 +1,8 @@
 package com.myblog.Service.Impl;
 
-import com.myblog.Common.RedisPrefixConstants;
+import com.myblog.Common.RedisConstants;
 import com.myblog.Common.TokenTimeConstants;
 import com.myblog.Utils.JwtUtil;
-import com.myblog.pojo.User;
 import jakarta.annotation.Resource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -26,17 +25,17 @@ public class TokenRedisService {
 
     //保存accessToken
     public void saveAccessToken(Long userId,String accessToken){
-        saveUserToken(userId,accessToken, RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX,TokenTimeConstants.ACCESS_TOKEN_EXPIRE);
+        saveUserToken(userId,accessToken, RedisConstants.USERTOKENLIST_ACCESS_PREFIX,TokenTimeConstants.ACCESS_TOKEN_EXPIRE);
     }
 
     //保存refreshToken
     public void saveRefreshToken(Long userId,String refreshToken){
-        saveUserToken(userId,refreshToken, RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_EXPIRE);
+        saveUserToken(userId,refreshToken, RedisConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_EXPIRE);
     }
 
     //保存refreshLongToken
     public void saveRefreshLongToken(Long userId,String refreshLongToken){
-        saveUserToken(userId,refreshLongToken, RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE);
+        saveUserToken(userId,refreshLongToken, RedisConstants.USERTOKENLIST_REFRESH_PREFIX,TokenTimeConstants.REFRESH_TOKEN_LONG_EXPIRE);
     }
 
     //将一个令牌加入黑名单
@@ -44,7 +43,7 @@ public class TokenRedisService {
         //解析获取过期时间
         long remainingTime= JwtUtil.getRemainingTimes(token);
         if(remainingTime>0){
-            String redisKey= RedisPrefixConstants.BLACKLIST_KEY_PREFIX+token;
+            String redisKey= RedisConstants.BLACKLIST_KEY_PREFIX+token;
             stringRedisTemplate.opsForValue().set(redisKey,"black",remainingTime, TimeUnit.MILLISECONDS);
         }
     }
@@ -52,8 +51,8 @@ public class TokenRedisService {
     //将用户所有令牌加入黑名单
     public  void addAllTokensToBlackList(Long userId){
         //记录用户所持有token的key
-        String accessKey=RedisPrefixConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
-        String refreshKey=RedisPrefixConstants.USERTOKENLIST_REFRESH_PREFIX+userId;
+        String accessKey= RedisConstants.USERTOKENLIST_ACCESS_PREFIX+userId;
+        String refreshKey= RedisConstants.USERTOKENLIST_REFRESH_PREFIX+userId;
 
         //获取该用户所有token并加入黑名单
         Set<String> accessTokens = stringRedisTemplate.opsForSet().members(accessKey);

@@ -7,6 +7,7 @@ import com.myblog.Service.ArticleService;
 import com.myblog.Utils.MarkdownUtil;
 import com.myblog.VO.ArticleAddVO;
 import com.myblog.VO.ArticlePageInfoVO;
+import com.myblog.VO.ArticleQueryDetailedVO;
 import com.myblog.VO.PageVO;
 import com.myblog.pojo.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,12 @@ public class ArticleController {
     public Result<PageVO<ArticlePageInfoVO>> articleQueryPages(@Validated ArticlePageDto articlePageDto){
 
         return articleService.articleQueryPages(articlePageDto);
+    }
+
+    @GetMapping("/{articleId}")
+    public Result<ArticleQueryDetailedVO> ArticleQueryDetailed(@PathVariable Long articleId){
+
+        return articleService.ArticleQueryDetailed(articleId);
     }
 
 }

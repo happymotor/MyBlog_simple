@@ -1,20 +1,15 @@
 package com.myblog.Utils;
 
 
-import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.Common.TokenTimeConstants;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 //TODO 后续component需要删除
 @Component

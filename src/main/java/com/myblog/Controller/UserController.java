@@ -1,17 +1,11 @@
 package com.myblog.Controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.myblog.Common.Result;
-import com.myblog.Common.TokenTimeConstants;
 import com.myblog.Dto.UserLoginDto;
-import com.myblog.Utils.ThreadLocalUtil;
-import com.myblog.VO.UserInfoVO;
 import com.myblog.VO.UserLoginVO;
 import com.myblog.Dto.UserRegisterDto;
 import com.myblog.Service.UserService;
-import com.myblog.Utils.JwtUtil;
 import com.myblog.Utils.Md5Util;
-import com.myblog.Common.RedisPrefixConstants;
 import com.myblog.VO.UserTokenVO;
 import com.myblog.pojo.User;
 import jakarta.annotation.Resource;
@@ -22,9 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/auth")

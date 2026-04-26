@@ -5,27 +5,32 @@ import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.metadata.OrderItem;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.myblog.Common.RedisConstants;
 import com.myblog.Common.Result;
 import com.myblog.Dto.ArticleAddDto;
 import com.myblog.Dto.ArticlePageDto;
 import com.myblog.Mapper.ArticleMapper;
-import com.myblog.Service.ArticleService;
-import com.myblog.Service.ArticleTagService;
-import com.myblog.Service.CategoryService;
-import com.myblog.Service.TagService;
+import com.myblog.Service.*;
 import com.myblog.Utils.MarkdownUtil;
 import com.myblog.Utils.UserHolderUtil;
 import com.myblog.VO.ArticleAddVO;
 import com.myblog.VO.ArticlePageInfoVO;
+import com.myblog.VO.ArticleQueryDetailedVO;
 import com.myblog.VO.PageVO;
 import com.myblog.pojo.Article;
 import com.myblog.pojo.ArticleTag;
 import com.myblog.pojo.Tag;
+import jakarta.annotation.Resource;
+import lombok.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -39,6 +44,13 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
     @Autowired
     private ArticleTagService articleTagService;
+
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     public Result<ArticleAddVO> articleAdd(ArticleAddDto articleAddDto) {
@@ -109,6 +121,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                         ArticleTag articleTag = new ArticleTag();
                         articleTag.setArticleId(article.getArticleId());
                         articleTag.setTagId(tag.getTagId());
+                        articleTag.setTagName(tag.getTagName());
                         return articleTag;
                     })
                     .toList();
@@ -118,6 +131,7 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         //创建VO对象
         return Result.success(new ArticleAddVO(article.getArticleId()));
     }
+
 
     @Override
     public Result<PageVO<ArticlePageInfoVO>> articleQueryPages(ArticlePageDto articlePageDto) {
@@ -169,5 +183,59 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
         vo.calculatePageInfo();
         //4.返回
         return Result.success(vo);
+    }
+
+    //TODO 热点文章缓存功能
+    @Override
+    public Result<ArticleQueryDetailedVO> ArticleQueryDetailed(Long articleId) {
+        Article article=getById(articleId);
+        if(article==null){
+            return Result.fail("该文章不存在");
+        }
+
+        //redis完成防重增加浏览量，同时对于完成判断的文章进行增加浏览量
+
+        String key= RedisConstants.ARTICLE_VIEW_PREFIX+
+                LocalDate.now() +':'+article.getArticleId();
+
+        if(Boolean.FALSE.equals(stringRedisTemplate.opsForSet().isMember(key, UserHolderUtil.getUserHolderId().toString()))){
+            stringRedisTemplate.opsForSet().add(key, UserHolderUtil.getUserHolderId().toString());
+            stringRedisTemplate.expire(key,RedisConstants.ARTICLE_VIEW_KEY_EXPIRE_TTL, TimeUnit.SECONDS);
+            //article.setViewCount(article.getViewCount()+1);
+            //updateById(article);
+            // 针对 Long 类型字段（viewCount/likeCount 等）原子+1
+            this.lambdaUpdate()
+                    .eq(Article::getArticleId, articleId)
+                    // view_count = view_count + 1
+                    .setSql("view_count = view_count + 1")
+                    .update();
+        }
+
+        //返回VO对象
+        ArticleQueryDetailedVO articleQueryDetailedVO=new ArticleQueryDetailedVO();
+        articleQueryDetailedVO=BeanUtil.copyProperties(article,ArticleQueryDetailedVO.class);
+
+        articleQueryDetailedVO.setCategoryName(categoryService.getByCategoryId(article.getCategoryId()).getCategoryName());
+        articleQueryDetailedVO.setAuthorName(userService.getById(article.getAuthorId()).getUsername());
+
+
+        List<String> tags = getTagsByArticleId(articleId);
+
+        articleQueryDetailedVO.setTags(tags);
+
+        return Result.success(articleQueryDetailedVO);
+
+    }
+
+    //根据文章id，查询标签列表
+    private @NonNull List<String> getTagsByArticleId(Long articleId) {
+        List<ArticleTag> tagsList=articleTagService.lambdaQuery()
+                .eq(ArticleTag::getArticleId, articleId)
+                .select(ArticleTag::getTagName)
+                .list();
+
+        return tagsList.stream()
+                .map(ArticleTag::getTagName)
+                .toList();
     }
 }

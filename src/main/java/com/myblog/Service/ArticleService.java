@@ -6,6 +6,7 @@ import com.myblog.Dto.ArticleAddDto;
 import com.myblog.Dto.ArticlePageDto;
 import com.myblog.VO.ArticleAddVO;
 import com.myblog.VO.ArticlePageInfoVO;
+import com.myblog.VO.ArticleQueryDetailedVO;
 import com.myblog.VO.PageVO;
 import com.myblog.pojo.Article;
 
@@ -13,4 +14,6 @@ public interface ArticleService extends IService<Article> {
     Result<ArticleAddVO> articleAdd(ArticleAddDto articleAddDto);
 
     Result<PageVO<ArticlePageInfoVO>> articleQueryPages(ArticlePageDto articlePageDto);
+
+    Result<ArticleQueryDetailedVO> ArticleQueryDetailed(Long articleId);
 }

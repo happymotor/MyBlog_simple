@@ -2,7 +2,7 @@ package com.myblog.Interceptor;
 
 import cn.hutool.json.JSONUtil;
 import com.myblog.Utils.JwtUtil;
-import com.myblog.Common.RedisPrefixConstants;
+import com.myblog.Common.RedisConstants;
 import com.myblog.Utils.ThreadLocalUtil;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,7 +44,7 @@ public class LoginInterceptor implements HandlerInterceptor {
             String accessToken=authHeader.substring(7);
 
             //校验是否为黑名单令牌
-            String redisKey= RedisPrefixConstants.BLACKLIST_KEY_PREFIX+accessToken;
+            String redisKey= RedisConstants.BLACKLIST_KEY_PREFIX+accessToken;
             if(Boolean.TRUE.equals(stringRedisTemplate.hasKey(redisKey))){
                 response.setStatus(401);
                 response.setContentType("application/json;charset=UTF-8");
