@@ -7,16 +7,13 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.myblog.Common.RedisConstants;
 import com.myblog.Common.Result;
-import com.myblog.Dto.ArticleAddDto;
+import com.myblog.Dto.ArticleAddAndUpdateDto;
 import com.myblog.Dto.ArticlePageDto;
 import com.myblog.Mapper.ArticleMapper;
 import com.myblog.Service.*;
 import com.myblog.Utils.MarkdownUtil;
 import com.myblog.Utils.UserHolderUtil;
-import com.myblog.VO.ArticleAddVO;
-import com.myblog.VO.ArticlePageInfoVO;
-import com.myblog.VO.ArticleQueryDetailedVO;
-import com.myblog.VO.PageVO;
+import com.myblog.VO.*;
 import com.myblog.pojo.Article;
 import com.myblog.pojo.ArticleTag;
 import com.myblog.pojo.Tag;
@@ -27,11 +24,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Service
 public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> implements ArticleService {
@@ -53,19 +48,19 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
     private UserService userService;
 
     @Override
-    public Result<ArticleAddVO> articleAdd(ArticleAddDto articleAddDto) {
+    public Result<ArticleAddVO> articleAdd(ArticleAddAndUpdateDto articleAddAndUpdateDto) {
         //参数校验逻辑
-        if(articleAddDto==null){
+        if(articleAddAndUpdateDto ==null){
             return Result.fail("传参不能为空");
         }
-        if(articleAddDto.getStatus()!=0&&articleAddDto.getStatus()!=1){
+        if(articleAddAndUpdateDto.getStatus()!=0&& articleAddAndUpdateDto.getStatus()!=1){
             return Result.fail("status该状态不不存在");
         }
-        if(articleAddDto.getTags()!=null){
-            if(articleAddDto.getTags().size()>5){
+        if(articleAddAndUpdateDto.getTags()!=null){
+            if(articleAddAndUpdateDto.getTags().size()>5){
                 return Result.fail("文章最多只能有五个标签");
             }
-            for(String tag:articleAddDto.getTags()){
+            for(String tag: articleAddAndUpdateDto.getTags()){
                 if(tag.isEmpty()){
                     return Result.fail("标签名称不能为空");
                 }
@@ -74,33 +69,33 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
                 }
             }
         }
-        if(!MarkdownUtil.isValid(articleAddDto.getContent())){
+        if(!MarkdownUtil.isValid(articleAddAndUpdateDto.getContent())){
             return Result.fail("内容格式不正确");
         }
-        if(categoryService.getByCategoryId(articleAddDto.getCategoryId())==null){
+        if(categoryService.getByCategoryId(articleAddAndUpdateDto.getCategoryId())==null){
             return  Result.fail("该栏目不存在");
         }
         //数据处理
-        if(articleAddDto.getSummary()==null){
-            int subLength=Math.min(200,articleAddDto.getContent().length());
-            articleAddDto.setSummary(articleAddDto.getContent().substring(0,subLength));
+        if(articleAddAndUpdateDto.getSummary()==null){
+            int subLength=Math.min(200, articleAddAndUpdateDto.getContent().length());
+            articleAddAndUpdateDto.setSummary(articleAddAndUpdateDto.getContent().substring(0,subLength));
         }
 
         //保存 文章 对象到数据库
         Article article=new Article();
-        article.setTitle(articleAddDto.getTitle());
-        article.setContent(articleAddDto.getContent());
-        article.setHtmlContent(MarkdownUtil.toHtml(articleAddDto.getContent()));
-        article.setSummary(articleAddDto.getSummary());
-        article.setCategoryId(articleAddDto.getCategoryId());
-        article.setStatus(articleAddDto.getStatus());
+        article.setTitle(articleAddAndUpdateDto.getTitle());
+        article.setContent(articleAddAndUpdateDto.getContent());
+        article.setHtmlContent(MarkdownUtil.toHtml(articleAddAndUpdateDto.getContent()));
+        article.setSummary(articleAddAndUpdateDto.getSummary());
+        article.setCategoryId(articleAddAndUpdateDto.getCategoryId());
+        article.setStatus(articleAddAndUpdateDto.getStatus());
         article.setAuthorId(UserHolderUtil.getUserHolderId());
         this.save(article);
 
         //判断标签对象是否为空
-        if(articleAddDto.getTags()!=null&&!articleAddDto.getTags().isEmpty()) {
+        if(articleAddAndUpdateDto.getTags()!=null&&!articleAddAndUpdateDto.getTags().isEmpty()) {
             //保存 标签 对象到数据库
-            List<Tag> tags = articleAddDto.getTags().stream()
+            List<Tag> tags = articleAddAndUpdateDto.getTags().stream()
                     .filter(tagName -> {
                         if (tagService.getByTagName(tagName) != null) {
                             return false;
@@ -225,6 +220,114 @@ public class ArticleServiceImpl extends ServiceImpl<ArticleMapper, Article> impl
 
         return Result.success(articleQueryDetailedVO);
 
+    }
+
+    //绝大部分逻辑和新增文章类似
+    @Override
+    public Result<ArticleUpdateVO> articleUpdate(Long articleId, ArticleAddAndUpdateDto articleAddAndUpdateDto) {
+        //判断修改的文章是否存在
+        Article oldArticle= getById(articleId);
+        if(oldArticle==null){
+            return Result.fail("该文章不存在");
+        }
+        //判断该文章是否是自己的
+        if(!oldArticle.getAuthorId().equals(UserHolderUtil.getUserHolderId())){
+            return Result.fail("无法修改其他作者的文章");
+        }
+
+        //参数校验逻辑
+        if(articleAddAndUpdateDto ==null){
+            return Result.fail("传参不能为空");
+        }
+        if(articleAddAndUpdateDto.getStatus()!=0&& articleAddAndUpdateDto.getStatus()!=1&& articleAddAndUpdateDto.getStatus()!=2){
+            return Result.fail("status该状态不不存在");
+        }
+        if(articleAddAndUpdateDto.getTags()!=null){
+            if(articleAddAndUpdateDto.getTags().size()>5){
+                return Result.fail("文章最多只能有五个标签");
+            }
+            for(String tag: articleAddAndUpdateDto.getTags()){
+                if(tag.isEmpty()){
+                    return Result.fail("标签名称不能为空");
+                }
+                if(tag.length()>10){
+                    return Result.fail("标签长度不可以超过10");
+                }
+            }
+        }
+        if(!MarkdownUtil.isValid(articleAddAndUpdateDto.getContent())){
+            return Result.fail("内容格式不正确");
+        }
+        if(categoryService.getByCategoryId(articleAddAndUpdateDto.getCategoryId())==null){
+            return  Result.fail("该栏目不存在");
+        }
+        //数据处理
+        if(articleAddAndUpdateDto.getSummary()==null){
+            int subLength=Math.min(200, articleAddAndUpdateDto.getContent().length());
+            articleAddAndUpdateDto.setSummary(articleAddAndUpdateDto.getContent().substring(0,subLength));
+        }
+
+        //保存 文章 对象到数据库
+        Article article=new Article();
+        article=BeanUtil.copyProperties(articleAddAndUpdateDto,Article.class);
+        article.setArticleId(articleId);
+        updateById(article);
+
+        //判断标签对象是否为空
+        if(articleAddAndUpdateDto.getTags()!=null&&!articleAddAndUpdateDto.getTags().isEmpty()) {
+            //保存 标签 对象到数据库
+            List<Tag> tags = articleAddAndUpdateDto.getTags().stream()
+                    .filter(tagName -> {
+                        if (tagService.getByTagName(tagName) != null) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .map(tagName -> {
+                        Tag tag = new Tag();
+                        tag.setTagName(tagName);
+                        return tag;
+                    })
+                    .toList();
+            tagService.saveBatch(tags);
+
+            //保存 文章标签 对象到数据库
+            List<ArticleTag> articleTags = tags.stream()
+                    .map(tag -> {
+                        ArticleTag articleTag = new ArticleTag();
+                        articleTag.setArticleId(articleId);
+                        articleTag.setTagId(tag.getTagId());
+                        articleTag.setTagName(tag.getTagName());
+                        return articleTag;
+                    })
+                    .toList();
+            articleTagService.saveBatch(articleTags);
+
+        }
+        //创建VO对象
+        return Result.success(new ArticleUpdateVO(article.getArticleId(),article.getStatus()));
+    }
+
+    @Override
+    public Result articleDelete(List<Long> articleIds) {
+        if(articleIds==null||articleIds.isEmpty()){
+            return Result.fail("id参数不能为空");
+        }
+        for(Long articleId:articleIds){
+            Article article=getById(articleId);
+            if(article==null){
+                return Result.fail("id为"+articleId+"的文章不存在");
+            }
+            //status需要是回收站状态
+            if(article.getStatus()!=2){
+                return Result.fail("id为"+articleId+"的文章不处于回收站状态，无法删除");
+            }
+            if(!article.getAuthorId().equals(UserHolderUtil.getUserHolderId())){
+                return Result.fail("不能删除其他用户的文章");
+            }
+        }
+        removeByIds(articleIds);
+        return Result.success();
     }
 
     //根据文章id，查询标签列表

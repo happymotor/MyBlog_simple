@@ -72,10 +72,10 @@ public class CategoryController {
         for(Long categoryId:categoryIds){
             Category category =categoryService.getByCategoryId(categoryId);
             if(category==null){
-                return Result.fail("该栏目不存在");
+                return Result.fail("id为"+categoryId+"的栏目不存在");
             }
             if(category.getArticleCount()>0){
-                return Result.fail("当前栏目下存在文章，无法删除");
+                return Result.fail("id为"+categoryId+"的栏目下存在文章，无法删除");
             }
             categoryService.categoryDelete(category);
         }

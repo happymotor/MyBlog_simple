@@ -1,18 +1,16 @@
 package com.myblog.Controller;
 
 import com.myblog.Common.Result;
-import com.myblog.Dto.ArticleAddDto;
+import com.myblog.Dto.ArticleAddAndUpdateDto;
 import com.myblog.Dto.ArticlePageDto;
 import com.myblog.Service.ArticleService;
-import com.myblog.Utils.MarkdownUtil;
-import com.myblog.VO.ArticleAddVO;
-import com.myblog.VO.ArticlePageInfoVO;
-import com.myblog.VO.ArticleQueryDetailedVO;
-import com.myblog.VO.PageVO;
-import com.myblog.pojo.Tag;
+import com.myblog.VO.*;
+import com.myblog.pojo.Article;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("api/article")
@@ -22,9 +20,9 @@ public class ArticleController {
     private ArticleService articleService;
 
     @PostMapping
-    public Result<ArticleAddVO> articleAdd(@RequestBody  @Validated ArticleAddDto articleAddDto){
+    public Result<ArticleAddVO> articleAdd(@RequestBody  @Validated ArticleAddAndUpdateDto articleAddAndUpdateDto){
 
-        return articleService.articleAdd(articleAddDto);
+        return articleService.articleAdd(articleAddAndUpdateDto);
     }
 
     @GetMapping("/list")
@@ -37,6 +35,18 @@ public class ArticleController {
     public Result<ArticleQueryDetailedVO> ArticleQueryDetailed(@PathVariable Long articleId){
 
         return articleService.ArticleQueryDetailed(articleId);
+    }
+
+    @PutMapping("/{articleId}")
+    public Result<ArticleUpdateVO> articleUpdate(@PathVariable Long articleId ,
+                                                 @RequestBody  @Validated ArticleAddAndUpdateDto articleAddAndUpdateDto){
+        return articleService.articleUpdate(articleId,articleAddAndUpdateDto);
+    }
+
+    @DeleteMapping("/{articleId}")
+    public Result articleDelete(@PathVariable(name="articleId")List<Long> articleIds){
+
+        return articleService.articleDelete(articleIds);
     }
 
 }
